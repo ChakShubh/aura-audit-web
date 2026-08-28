@@ -1,5 +1,8 @@
 import json
 import time
+import base64
+import ssl
+import traceback
 import urllib.request
 import urllib.error
 from html.parser import HTMLParser
@@ -35,7 +38,7 @@ class DOMInspector(HTMLParser):
 
         elif tag == "img":
             self.images_total += 1
-            if "alt" not in attr_dict or attr_dict["alt"].strip() == "":
+            if "alt" not in attr_dict or not attr_dict["alt"].strip():
                 self.images_missing_alt += 1
 
         elif tag in ["h1", "h2", "h3", "h4", "h5", "h6"]:
@@ -100,23 +103,23 @@ HTTP Security/Caching Headers: {json.dumps(headers_info)}
 Required JSON Schema:
 {{
   "scores": {{
-    "accessibility": 0-100,
-    "performance": 0-100,
-    "semantics": 0-100,
-    "overall": 0-100
+    "accessibility": 85,
+    "performance": 90,
+    "semantics": 80,
+    "overall": 85
   }},
   "summary": "2-3 sentences summarizing the key accessibility and performance posture.",
   "issues": [
     {{
-      "severity": "CRITICAL" | "WARNING" | "INFO",
-      "wcag_criterion": "e.g., WCAG 2.2 - 1.1.1 Non-text Content (Level A)",
-      "title": "Short title of the issue",
-      "description": "Clear explanation of the violation and user impact.",
-      "code_snippet_remediation": "Concrete HTML/CSS/JS code showing how to fix it"
+      "severity": "CRITICAL",
+      "wcag_criterion": "WCAG 2.2 - 1.1.1 Non-text Content (Level A)",
+      "title": "Images missing alt text",
+      "description": "Found images without alt descriptions.",
+      "code_snippet_remediation": "<img src='logo.png' alt='Company Logo' />"
     }}
   ],
   "quick_wins": [
-    "string", "string", "string"
+    "Add lang='en' to the <html> root element"
   ]
 }}
 """
@@ -145,14 +148,13 @@ Required JSON Schema:
     response_body = json.loads(response['body'].read())
     raw_text = response_body["output"]["message"]["content"][0]["text"].strip()
 
-    if raw_text.startswith("```json"):
-        raw_text = raw_text[7:]
-    if raw_text.startswith("```"):
-        raw_text = raw_text[3:]
-    if raw_text.endswith("```"):
-        raw_text = raw_text[:-3]
+    # Strip markdown fences if present
+    if "```json" in raw_text:
+        raw_text = raw_text.split("```json")[1].split("```")[0].strip()
+    elif "```" in raw_text:
+        raw_text = raw_text.split("```")[1].split("```")[0].strip()
 
-    return json.loads(raw_text.strip())
+    return json.loads(raw_text)
 
 
 def lambda_handler(event, context):
@@ -163,17 +165,16 @@ def lambda_handler(event, context):
         "Access-Control-Allow-Methods": "OPTIONS,POST,GET"
     }
 
-    # Handle CORS pre-flight
     if event.get("requestContext", {}).get("http", {}).get("method") == "OPTIONS":
         return {"statusCode": 200, "headers": headers, "body": json.dumps({"status": "ok"})}
 
     try:
-        body = event.get("body", "{}")
-        if isinstance(body, str):
-            data = json.loads(body) if body else {}
-        else:
-            data = body or {}
+        # Decode body if base64 encoded
+        raw_body = event.get("body", "{}")
+        if event.get("isBase64Encoded", False):
+            raw_body = base64.b64decode(raw_body).decode('utf-8')
 
+        data = json.loads(raw_body) if isinstance(raw_body, str) else (raw_body or {})
         target_url = data.get("url", "").strip()
 
         if not target_url:
@@ -186,13 +187,20 @@ def lambda_handler(event, context):
         if not target_url.startswith("http://") and not target_url.startswith("https://"):
             target_url = "https://" + target_url
 
+        # SSL & User-Agent Bypass
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+
         req = urllib.request.Request(
             target_url,
-            headers={"User-Agent": "AuraAudit/1.0 (Web Accessibility & Performance Diagnostic Bot)"}
+            headers={
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            }
         )
 
         start_time = time.time()
-        with urllib.request.urlopen(req, timeout=8) as resp:
+        with urllib.request.urlopen(req, context=ctx, timeout=8) as resp:
             raw_html = resp.read()
             elapsed_ms = round((time.time() - start_time) * 1000, 2)
             html_text = raw_html.decode('utf-8', errors='ignore')
@@ -201,7 +209,7 @@ def lambda_handler(event, context):
         payload_kb = round(len(raw_html) / 1024, 2)
 
         inspector = DOMInspector()
-        inspector.feed(html_text[:150000])
+        inspector.feed(html_text[:120000])
 
         telemetry = {
             "ttfb_ms": elapsed_ms,
@@ -235,9 +243,11 @@ def lambda_handler(event, context):
         }
 
     except Exception as e:
+        print("Detailed Error Traceback:")
+        traceback.print_exc()
         return {
             "statusCode": 500,
             "headers": headers,
             "body": json.dumps({"error": str(e)})
         }
-        
+    

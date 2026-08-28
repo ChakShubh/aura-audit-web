@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AuraAudit | Instant WCAG 2.2 & Performance Diagnostics</title>
+  <title>AuraAudit | Multi-URL WCAG 2.2 & Performance Diagnostics</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -49,7 +49,7 @@
 
     header {
       text-align: center;
-      margin-bottom: 2.5rem;
+      margin-bottom: 2rem;
     }
 
     .badge {
@@ -86,16 +86,48 @@
       line-height: 1.5;
     }
 
-    .search-box {
+    /* Controls Bar */
+    .controls-wrapper {
       background: var(--card-bg);
       backdrop-filter: blur(12px);
       border: 1px solid var(--card-border);
       border-radius: 1rem;
-      padding: 0.5rem;
-      display: flex;
-      gap: 0.5rem;
+      padding: 0.75rem;
       box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
       margin-bottom: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .device-switch {
+      display: flex;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 0.5rem;
+    }
+
+    .device-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      padding: 0.4rem 0.9rem;
+      border-radius: 0.5rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .device-btn.active {
+      background: rgba(99, 102, 241, 0.18);
+      border-color: rgba(99, 102, 241, 0.4);
+      color: #fff;
+    }
+
+    .search-box {
+      display: flex;
+      gap: 0.5rem;
     }
 
     .search-box input {
@@ -104,8 +136,8 @@
       border: none;
       outline: none;
       color: #fff;
-      font-size: 1rem;
-      padding: 0.75rem 1rem;
+      font-size: 0.95rem;
+      padding: 0.5rem 0.75rem;
     }
 
     .search-box input::placeholder {
@@ -126,6 +158,7 @@
       display: flex;
       align-items: center;
       gap: 0.5rem;
+      white-space: nowrap;
     }
 
     .btn-audit:hover {
@@ -158,8 +191,36 @@
       to { transform: rotate(360deg); }
     }
 
-    #results {
+    #results-wrapper {
       display: none;
+    }
+
+    /* Tabs for Batch Results */
+    .tabs-bar {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+      overflow-x: auto;
+      padding-bottom: 0.25rem;
+    }
+
+    .tab-btn {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      padding: 0.6rem 1.2rem;
+      border-radius: 0.75rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .tab-btn.active {
+      background: rgba(99, 102, 241, 0.25);
+      border-color: var(--accent);
+      color: #fff;
     }
 
     .score-grid {
@@ -213,14 +274,20 @@
       line-height: 1.6;
     }
 
+    .meta-bar {
+      display: flex;
+      gap: 1rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.75rem;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
     .section-heading {
       font-size: 1.25rem;
       font-weight: 700;
       margin-bottom: 1rem;
       color: #fff;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
     }
 
     .issues-list {
@@ -330,84 +397,78 @@
     <header>
       <div class="badge">⚡ Powered by Amazon Bedrock (Nova Micro)</div>
       <h1>AuraAudit</h1>
-      <p class="subtitle">Real-time Web Accessibility (WCAG 2.2) & Serverless Performance Diagnostics with AI-driven remediation code patches.</p>
+      <p class="subtitle">Real-time Web Accessibility (WCAG 2.2) & Serverless Performance Diagnostics. Supports batch URL audits & viewport simulation.</p>
     </header>
 
-    <div class="search-box">
-      <input type="text" id="urlInput" placeholder="Enter website URL : " />
-      <button class="btn-audit" id="auditBtn" onclick="runAudit()">
-        <span>Run Audit</span>
-      </button>
+    <div class="controls-wrapper">
+      <div class="device-switch">
+        <button class="device-btn active" id="btnDesktop" onclick="setDevice('desktop')">🖥️ Desktop Mode</button>
+        <button class="device-btn" id="btnMobile" onclick="setDevice('mobile')">📱 Mobile Viewport</button>
+      </div>
+      <div class="search-box">
+        <input type="text" id="urlInput" placeholder="Enter URL or multiple URLs separated by commas (e.g. example.com, aws.amazon.com)" />
+        <button class="btn-audit" id="auditBtn" onclick="runAudit()">
+          <span>Run Audit</span>
+        </button>
+      </div>
     </div>
 
     <div id="loading">
       <div class="spinner"></div>
-      <p style="color: #a5b4fc; font-weight: 500;">Inspecting DOM telemetry & synthesizing WCAG 2.2 rules...</p>
+      <p style="color: #a5b4fc; font-weight: 500;">Inspecting DOM telemetry & synthesizing WCAG 2.2 rules via Nova Micro...</p>
     </div>
 
-    <div id="results">
-      <div class="score-grid">
-        <div class="score-card">
-          <div class="score-title">Overall Score</div>
-          <div class="score-val" id="overallScore">--</div>
-        </div>
-        <div class="score-card">
-          <div class="score-title">Accessibility</div>
-          <div class="score-val" id="a11yScore">--</div>
-        </div>
-        <div class="score-card">
-          <div class="score-title">Performance</div>
-          <div class="score-val" id="perfScore">--</div>
-        </div>
-        <div class="score-card">
-          <div class="score-title">Semantics</div>
-          <div class="score-val" id="semScore">--</div>
-        </div>
-      </div>
-
-      <div class="summary-card">
-        <h3>Executive Summary</h3>
-        <p id="summaryText"></p>
-      </div>
-
-      <div class="quick-wins" id="quickWinsBox">
-        <h4>⚡ Quick Wins</h4>
-        <ul id="quickWinsList"></ul>
-      </div>
-
-      <div class="section-heading">Detailed WCAG 2.2 Diagnostic Findings</div>
-      <div class="issues-list" id="issuesList"></div>
+    <div id="results-wrapper">
+      <div class="tabs-bar" id="tabsBar"></div>
+      <div id="auditContent"></div>
     </div>
 
     <footer>
-      AuraAudit &bull; AWS Lambda + Bedrock Nova Micro + Amplify
+      AuraAudit &bull; Built for the AWS Builder Center Showcase Challenge &bull; AWS Lambda + Bedrock Nova Micro + Amplify
     </footer>
   </div>
 
   <script>
+    // -------------------------------------------------------------
+    // LAMBDA FUNCTION URL:
+    // -------------------------------------------------------------
     const LAMBDA_URL = "https://k5bfxyungqmytuhz5qkf5dagui0yaxtl.lambda-url.ap-southeast-2.on.aws/";
+
+    let currentDevice = "desktop";
+    let batchReports = [];
+
+    function setDevice(mode) {
+      currentDevice = mode;
+      document.getElementById("btnDesktop").classList.toggle("active", mode === "desktop");
+      document.getElementById("btnMobile").classList.toggle("active", mode === "mobile");
+    }
 
     async function runAudit() {
       const input = document.getElementById("urlInput");
       const btn = document.getElementById("auditBtn");
       const loading = document.getElementById("loading");
-      const results = document.getElementById("results");
+      const resultsWrapper = document.getElementById("results-wrapper");
 
-      const url = input.value.trim();
-      if (!url) {
-        alert("Please provide a valid URL.");
+      const rawInput = input.value.trim();
+      if (!rawInput) {
+        alert("Please enter at least one URL.");
         return;
       }
 
+      const urls = rawInput.split(",").map(u => u.trim()).filter(Boolean);
+
       btn.disabled = true;
       loading.style.display = "block";
-      results.style.display = "none";
+      resultsWrapper.style.display = "none";
 
       try {
         const response = await fetch(LAMBDA_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: url })
+          body: JSON.stringify({
+            urls: urls,
+            device: currentDevice
+          })
         });
 
         if (!response.ok) {
@@ -415,7 +476,9 @@
         }
 
         const data = await response.json();
-        renderResults(data);
+        batchReports = data.batch ? data.results : [data];
+        renderTabsAndActive(0);
+        resultsWrapper.style.display = "block";
       } catch (err) {
         alert("Error running audit: " + err.message);
       } finally {
@@ -424,57 +487,102 @@
       }
     }
 
-    function renderResults(data) {
-      document.getElementById("overallScore").textContent = data.scores.overall || 0;
-      document.getElementById("a11yScore").textContent = data.scores.accessibility || 0;
-      document.getElementById("perfScore").textContent = data.scores.performance || 0;
-      document.getElementById("semScore").textContent = data.scores.semantics || 0;
+    function renderTabsAndActive(index) {
+      const tabsBar = document.getElementById("tabsBar");
+      tabsBar.innerHTML = "";
 
-      document.getElementById("summaryText").textContent = data.summary;
-
-      // Quick wins
-      const qwList = document.getElementById("quickWinsList");
-      qwList.innerHTML = "";
-      if (data.quick_wins && data.quick_wins.length > 0) {
-        data.quick_wins.forEach(qw => {
-          const li = document.createElement("li");
-          li.textContent = qw;
-          qwList.appendChild(li);
+      if (batchReports.length > 1) {
+        batchReports.forEach((rep, i) => {
+          const btn = document.createElement("button");
+          btn.className = `tab-btn ${i === index ? 'active' : ''}`;
+          const cleanUrl = rep.target_url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+          btn.textContent = `${cleanUrl} (${rep.scores.overall || 0})`;
+          btn.onclick = () => renderTabsAndActive(i);
+          tabsBar.appendChild(btn);
         });
-        document.getElementById("quickWinsBox").style.display = "block";
+        tabsBar.style.display = "flex";
       } else {
-        document.getElementById("quickWinsBox").style.display = "none";
+        tabsBar.style.display = "none";
       }
 
-      // Issues
-      const issuesContainer = document.getElementById("issuesList");
-      issuesContainer.innerHTML = "";
-      (data.issues || []).forEach(iss => {
-        const div = document.createElement("div");
-        div.className = `issue-card ${iss.severity}`;
-        div.innerHTML = `
-          <div class="issue-header">
-            <span class="issue-tag ${iss.severity}">${iss.severity}</span>
-            <span class="issue-criterion">${iss.wcag_criterion || ''}</span>
+      renderReport(batchReports[index]);
+    }
+
+    function renderReport(data) {
+      const content = document.getElementById("auditContent");
+      const tel = data.telemetry_raw || {};
+
+      let quickWinsHtml = "";
+      if (data.quick_wins && data.quick_wins.length > 0) {
+        const items = data.quick_wins.map(qw => `<li>${escapeHtml(qw)}</li>`).join("");
+        quickWinsHtml = `
+          <div class="quick-wins">
+            <h4>⚡ Quick Wins</h4>
+            <ul>${items}</ul>
           </div>
-          <div class="issue-title">${iss.title}</div>
-          <div class="issue-desc">${iss.description}</div>
-          ${iss.code_snippet_remediation ? `<div class="code-block">${escapeHtml(iss.code_snippet_remediation)}</div>` : ''}
         `;
-        issuesContainer.appendChild(div);
+      }
+
+      let issuesHtml = "";
+      (data.issues || []).forEach(iss => {
+        issuesHtml += `
+          <div class="issue-card ${iss.severity}">
+            <div class="issue-header">
+              <span class="issue-tag ${iss.severity}">${iss.severity}</span>
+              <span class="issue-criterion">${escapeHtml(iss.wcag_criterion || '')}</span>
+            </div>
+            <div class="issue-title">${escapeHtml(iss.title)}</div>
+            <div class="issue-desc">${escapeHtml(iss.description)}</div>
+            ${iss.code_snippet_remediation ? `<div class="code-block">${escapeHtml(iss.code_snippet_remediation)}</div>` : ''}
+          </div>
+        `;
       });
 
-      document.getElementById("results").style.display = "block";
+      content.innerHTML = `
+        <div class="score-grid">
+          <div class="score-card">
+            <div class="score-title">Overall Score</div>
+            <div class="score-val">${data.scores.overall || 0}</div>
+          </div>
+          <div class="score-card">
+            <div class="score-title">Accessibility</div>
+            <div class="score-val">${data.scores.accessibility || 0}</div>
+          </div>
+          <div class="score-card">
+            <div class="score-title">Performance</div>
+            <div class="score-val">${data.scores.performance || 0}</div>
+          </div>
+          <div class="score-card">
+            <div class="score-title">Semantics</div>
+            <div class="score-val">${data.scores.semantics || 0}</div>
+          </div>
+        </div>
+
+        <div class="summary-card">
+          <h3>Executive Summary (${data.device_mode ? data.device_mode.toUpperCase() : 'DESKTOP'})</h3>
+          <p>${escapeHtml(data.summary)}</p>
+          <div class="meta-bar">
+            <span>⏱️ TTFB: ${tel.ttfb_ms || 0}ms</span>
+            <span>📦 Size: ${tel.payload_kb || 0}KB</span>
+            <span>🌐 Lang: ${tel.html_lang || 'N/A'}</span>
+            <span>📱 Viewport: ${tel.viewport_meta || 'None'}</span>
+          </div>
+        </div>
+
+        ${quickWinsHtml}
+
+        <div class="section-heading">Detailed WCAG 2.2 Diagnostic Findings</div>
+        <div class="issues-list">${issuesHtml}</div>
+      `;
     }
 
     function escapeHtml(str) {
-      return str
+      return (str || "")
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
     }
 
-    // Allow Enter key to trigger audit
     document.getElementById("urlInput").addEventListener("keypress", (e) => {
       if (e.key === "Enter") runAudit();
     });

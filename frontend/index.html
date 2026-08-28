@@ -140,6 +140,17 @@
       padding: 0.5rem 0.75rem;
     }
 
+    .search-box textarea {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #fff;
+      font-size: 0.95rem;
+      padding: 0.5rem 0.75rem;
+      resize: vertical;
+    }
+
     .search-box input::placeholder {
       color: #6b7280;
     }
@@ -406,7 +417,7 @@
         <button class="device-btn" id="btnMobile" onclick="setDevice('mobile')">📱 Mobile Viewport</button>
       </div>
       <div class="search-box">
-        <input type="text" id="urlInput" placeholder="Enter URL or multiple URLs separated by commas (e.g. example.com, aws.amazon.com)" />
+        <textarea id="urlInput" rows="3" placeholder="Enter one or multiple URLs (one per line or comma-separated)&#10;example.com&#10;builder.aws.com"></textarea>
         <button class="btn-audit" id="auditBtn" onclick="runAudit()">
           <span>Run Audit</span>
         </button>
@@ -455,7 +466,11 @@
         return;
       }
 
-      const urls = rawInput.split(",").map(u => u.trim()).filter(Boolean);
+      // Splits by newlines or commas
+      const urls = rawInput
+        .split(/[\n,]+/)
+        .map(u => u.trim())
+        .filter(Boolean);
 
       btn.disabled = true;
       loading.style.display = "block";

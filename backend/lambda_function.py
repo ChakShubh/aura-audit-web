@@ -32,21 +32,16 @@ class DOMInspector(HTMLParser):
 
         if tag == "html" and "lang" in attr_dict:
             self.lang = attr_dict["lang"]
-
         elif tag == "title":
             self.in_title = True
-
         elif tag == "img":
             self.images_total += 1
             if "alt" not in attr_dict or not attr_dict["alt"].strip():
                 self.images_missing_alt += 1
-
         elif tag in ["h1", "h2", "h3", "h4", "h5", "h6"]:
             self.headings.append({"level": tag, "text": ""})
-
         elif tag == "form":
             self.forms_total += 1
-
         elif tag == "input":
             input_type = attr_dict.get("type", "text").lower()
             if input_type not in ["hidden", "submit", "button", "reset"]:
@@ -55,7 +50,6 @@ class DOMInspector(HTMLParser):
                 has_id = "id" in attr_dict
                 if not has_aria and not has_id:
                     self.inputs_missing_label += 1
-
         elif tag == "button":
             self.buttons_total += 1
             if "aria-label" not in attr_dict and "aria-labelledby" not in attr_dict:
@@ -148,7 +142,6 @@ Required JSON Schema:
     response_body = json.loads(response['body'].read())
     raw_text = response_body["output"]["message"]["content"][0]["text"].strip()
 
-    # Strip markdown fences if present
     if "```json" in raw_text:
         raw_text = raw_text.split("```json")[1].split("```")[0].strip()
     elif "```" in raw_text:
@@ -158,18 +151,7 @@ Required JSON Schema:
 
 
 def lambda_handler(event, context):
-    headers = {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type,Authorization",
-        "Access-Control-Allow-Methods": "OPTIONS,POST,GET"
-    }
-
-    if event.get("requestContext", {}).get("http", {}).get("method") == "OPTIONS":
-        return {"statusCode": 200, "headers": headers, "body": json.dumps({"status": "ok"})}
-
     try:
-        # Decode body if base64 encoded
         raw_body = event.get("body", "{}")
         if event.get("isBase64Encoded", False):
             raw_body = base64.b64decode(raw_body).decode('utf-8')
@@ -180,14 +162,12 @@ def lambda_handler(event, context):
         if not target_url:
             return {
                 "statusCode": 400,
-                "headers": headers,
                 "body": json.dumps({"error": "Missing 'url' parameter in request body."})
             }
 
         if not target_url.startswith("http://") and not target_url.startswith("https://"):
             target_url = "https://" + target_url
 
-        # SSL & User-Agent Bypass
         ctx = ssl.create_default_context()
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
@@ -238,7 +218,6 @@ def lambda_handler(event, context):
 
         return {
             "statusCode": 200,
-            "headers": headers,
             "body": json.dumps(report)
         }
 
@@ -247,7 +226,5 @@ def lambda_handler(event, context):
         traceback.print_exc()
         return {
             "statusCode": 500,
-            "headers": headers,
             "body": json.dumps({"error": str(e)})
         }
-    
